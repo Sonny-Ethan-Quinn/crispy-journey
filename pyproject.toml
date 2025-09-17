@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crispy-journey"
+version = "0.1.0"
+description = "A fully automated journey"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Sonny Ethan Quinn" }
+]
+
+[project.scripts]
+crispy-journey = "crispy_journey.main:main"
