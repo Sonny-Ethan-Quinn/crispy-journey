@@ -1,8 +1,0 @@
-README.md
-setup.py
-src/crispy_journey/__init__.py
-src/crispy_journey.egg-info/PKG-INFO
-src/crispy_journey.egg-info/SOURCES.txt
-src/crispy_journey.egg-info/dependency_links.txt
-src/crispy_journey.egg-info/top_level.txt
-tests/test_crispy_journey.py
