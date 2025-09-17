@@ -83,13 +83,22 @@ setup(
         draft: false
         prerelease: false
         
-    - name: Upload release assets
-      uses: actions/upload-release-asset@v1
+    - name: Upload release asset with GitHub CLI
+      if: success() && hashFiles('dist/*') != ''
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/
-        asset_name: crispy-journey-${{ github.ref_name }}.tar.gz
-        asset_content_type: application/gzip
-      if: success() && hashFiles('dist/*') != ''
+      run: |
+        # Install GitHub CLI if not already available
+        if ! command -v gh &> /dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y gh
+        fi
+        # Authenticate gh
+        echo "${GITHUB_TOKEN}" | gh auth login --with-token
+        # Find the asset file (tar.gz or wheel)
+        ASSET_PATH=$(ls dist/*.tar.gz 2>/dev/null | head -n 1)
+        if [ -z "$ASSET_PATH" ]; then
+          echo "No .tar.gz asset found in dist/"
+          exit 1
+        fi
+        gh release upload "${{ github.ref_name }}" "$ASSET_PATH" --clobber
