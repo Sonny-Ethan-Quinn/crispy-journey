@@ -96,10 +96,11 @@ class TestReadFile:
 
     def test_read_file_not_found(self):
         """Test reading a non-existent file."""
-        non_existent_path = Path("/tmp/non_existent_file.txt")
-        
-        with pytest.raises(FileNotFoundError):
-            read_file(non_existent_path)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            non_existent_path = Path(tmp_dir) / "non_existent_file.txt"
+            
+            with pytest.raises(FileNotFoundError):
+                read_file(non_existent_path)
 
 
 class TestWriteFile:
