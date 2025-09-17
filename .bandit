@@ -1,0 +1,8 @@
+[bandit]
+# Exclude test files
+exclude_dirs = ["tests"]
+
+# Skip subprocess warnings for automation tools
+skips = ["B404", "B602"]
+
+# These are acceptable for automation tools that need to run shell commands
