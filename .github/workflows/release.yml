@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Create Release
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel twine
+        
+    - name: Build package
+      run: |
+        if [ -f setup.py ] || [ -f pyproject.toml ]; then
+          python -m build
+        else
+          echo "No setup.py or pyproject.toml found, creating basic package structure"
+          mkdir -p src/crispy_journey
+          touch src/crispy_journey/__init__.py
+          echo 'from setuptools import setup, find_packages
+
+setup(
+    name="crispy-journey",
+    version="0.1.0",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    python_requires=">=3.9",
+    author="Sonny Ethan Quinn",
+    description="A fully automated journey",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+)' > setup.py
+          python -m build
+        fi
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the latest tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$LATEST_TAG" ]; then
+          # If no previous tags, get all commits
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --reverse)
+        else
+          # Get commits since last tag
+          COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s (%h)" --reverse)
+        fi
+        
+        # Write changelog to file
+        echo "## Changes" > CHANGELOG.md
+        echo "$COMMITS" >> CHANGELOG.md
+        
+        # Set output for GitHub release
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat CHANGELOG.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: ${{ steps.changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/
+        asset_name: crispy-journey-${{ github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
+      if: success() && hashFiles('dist/*') != ''
